@@ -229,6 +229,27 @@ fn copy_frameworks_to_bundle(bundle_directory: &Path, settings: &Settings) -> cr
         .expect("Couldn't get framework filename");
       common::copy_dir(&src_path, &dest_dir.join(&src_name))?;
       continue;
+    } else if framework.ends_with(".dylib") {
+      let src_path = PathBuf::from(framework);
+      let src_name = src_path
+        .file_name()
+        .expect("Couldn't get framework filename")
+        .to_str()
+        .expect("Could not convert to string");
+      let dest_path = &dest_dir.join(&src_name);
+      if !src_path.exists() {
+        info!("skipping file {} as it does not exist", &src_path.display());
+      } else if dest_path.exists() {
+        info!("file {} already exists", &dest_path.display());
+      } else {
+        info!(
+          "copying file from {} to {}",
+          &src_path.display(),
+          &dest_path.display()
+        );
+        common::copy_file(&src_path, &dest_path)?;
+      }
+      continue;
     } else if framework.contains('/') {
       return Err(crate::Error::GenericError(format!(
         "Framework path should have .framework extension: {}",
