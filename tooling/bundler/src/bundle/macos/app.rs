@@ -89,14 +89,14 @@ pub fn bundle_project(settings: &Settings) -> crate::Result<Vec<PathBuf>> {
     settings,
     bin_dir.join(settings.product_name()),
     frameworks_dir,
-  );
+  )?;
 
   // tell main binary where to look for dependencies (in Frameworks)
   install_name_tool(
     "add_rpath",
     vec![String::from("@loader_path/../Frameworks")],
     bin_dir.join(settings.product_name()),
-  );
+  )?;
 
   if let Some(identity) = &settings.macos().signing_identity {
     // sign application
@@ -115,7 +115,11 @@ pub fn bundle_project(settings: &Settings) -> crate::Result<Vec<PathBuf>> {
   Ok(vec![app_bundle_path])
 }
 
-fn update_dylibs_rpaths(settings: &Settings, bin_path: PathBuf, frameworks_path: PathBuf) {
+fn update_dylibs_rpaths(
+  settings: &Settings,
+  bin_path: PathBuf,
+  frameworks_path: PathBuf,
+) -> crate::Result<()> {
   let frameworks = settings
     .macos()
     .frameworks
@@ -137,7 +141,7 @@ fn update_dylibs_rpaths(settings: &Settings, bin_path: PathBuf, frameworks_path:
         "id",
         vec![format!("@rpath/{}", lib_name)],
         frameworks_path.join(lib_name),
-      );
+      )?;
 
       // tell current lib to use its own directory (Frameworks) to look for dependencies
       install_name_tool(
@@ -163,7 +167,7 @@ fn update_dylibs_rpaths(settings: &Settings, bin_path: PathBuf, frameworks_path:
               format!("@rpath/{}", lib_name),
             ],
             frameworks_path.join(dependant_lib_name),
-          );
+          )?;
         }
       }
 
@@ -175,12 +179,13 @@ fn update_dylibs_rpaths(settings: &Settings, bin_path: PathBuf, frameworks_path:
           format!("@rpath/{}", lib_name),
         ],
         bin_path.clone(),
-      );
+      )?;
     }
   }
+  Ok(())
 }
 
-fn install_name_tool(action: &str, args: Vec<String>, file: PathBuf) {
+fn install_name_tool(action: &str, args: Vec<String>, file: PathBuf) -> crate::Result<()> {
   info!(action = "Running"; "install_name_tool -{} {} {}", action, args.join(" "), file.display());
 
   Command::new("install_name_tool")
@@ -188,7 +193,8 @@ fn install_name_tool(action: &str, args: Vec<String>, file: PathBuf) {
     .args(args)
     .arg(file)
     .output_ok()
-    .context("failed to run install_name_tool");
+    .context("failed to run install_name_tool")?;
+  Ok(())
 }
 
 // Copies the app's binaries to the bundle.
