@@ -129,7 +129,9 @@ fn update_dylibs_rpaths(
 
   for framework in frameworks.iter() {
     let lib_path = PathBuf::from(framework);
-    if framework.ends_with(".dylib") && lib_path.exists() {
+    if (framework.ends_with(".dylib") || framework.ends_with(".so") || framework.ends_with(".so.2"))
+      && lib_path.exists()
+    {
       let lib_name = lib_path
         .file_name()
         .expect("Couldn't get framework filename")
@@ -153,7 +155,11 @@ fn update_dylibs_rpaths(
       // tell all dependant libraries to look for the lib in @rpath (which now includes their own directory)
       for dependant_framework in frameworks.iter() {
         let dependant_lib_path = PathBuf::from(dependant_framework);
-        if dependant_framework.ends_with(".dylib") && dependant_lib_path.exists() {
+        if (dependant_framework.ends_with(".dylib")
+          || framework.ends_with(".so")
+          || framework.ends_with(".so.2"))
+          && dependant_lib_path.exists()
+        {
           let dependant_lib_name = dependant_lib_path
             .file_name()
             .expect("Couldn't get framework filename")
@@ -326,7 +332,10 @@ fn copy_frameworks_to_bundle(bundle_directory: &Path, settings: &Settings) -> cr
         .expect("Couldn't get framework filename");
       common::copy_dir(&src_path, &dest_dir.join(&src_name))?;
       continue;
-    } else if framework.ends_with(".dylib") {
+    } else if framework.ends_with(".dylib")
+      || framework.ends_with(".so")
+      || framework.ends_with(".so.2")
+    {
       let src_path = PathBuf::from(framework);
       let src_name = src_path
         .file_name()
